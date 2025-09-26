@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  riptide-crypto-node:
+    build: .
+    container_name: riptide-crypto-node
+    privileged: true
+    cgroupns: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - riptide-logs:/var/log/riptide
+      - myria-data:/var/lib/myria-node
+      - myria-logs:/var/log/myria-node
+    ports:
+      - "3000:3000"   # Riptide API
+      - "8080:8080"   # Riptide WebSocket
+      - "8545:8545"   # Myria node RPC
+      - "30303:30303" # Myria node P2P
+    environment:
+      - NODE_ENV=production
+      - RIPTIDE_SERVICE_NAME=riptide
+      - CRYPTO_NODE_SERVICE=myria-node
+      - INTERACTIVE_SETUP=false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "systemctl", "is-active", "--quiet", "riptide.service"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  riptide-logs:
+    driver: local
+  myria-data:
+    driver: local
+  myria-logs:
+    driver: local

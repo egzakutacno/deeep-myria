@@ -1,0 +1,33 @@
+{
+  "service": {
+    "name": "myria-node-service",
+    "version": "1.0.0",
+    "description": "Myria node service with Riptide SDK integration",
+    "port": 3000,
+    "environment": "production"
+  },
+  "riptide": {
+    "enabled": true,
+    "heartbeatInterval": 30000,
+    "statusCheckInterval": 60000,
+    "metricsEnabled": true,
+    "logging": {
+      "level": "info",
+      "format": "json"
+    }
+  },
+  "myria": {
+    "network": "mainnet",
+    "nodeType": "validator",
+    "consensus": "proof-of-stake",
+    "rpcPort": 8545,
+    "p2pPort": 30303,
+    "dataDir": "/var/lib/myria-node",
+    "logDir": "/var/log/myria-node"
+  },
+  "monitoring": {
+    "healthCheckPath": "/health",
+    "metricsPath": "/metrics",
+    "statusPath": "/status"
+  }
+}
