@@ -28,6 +28,9 @@ RUN apt-get update && apt-get install -y \
 RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
     && apt-get install -y nodejs
 
+# Install pnpm (required for @deeep-network/riptide)
+RUN npm install -g pnpm
+
 # Create application directory
 WORKDIR /app
 
@@ -36,8 +39,8 @@ COPY package-riptide.json package.json
 COPY riptide.config.json ./
 COPY env.example ./
 
-# Install Node.js dependencies
-RUN npm install
+# Install Node.js dependencies using pnpm
+RUN pnpm install
 
 # Install Myria node software
 RUN wget https://downloads-builds.myria.com/node/install.sh -O /tmp/install.sh \
