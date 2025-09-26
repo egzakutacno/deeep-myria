@@ -382,10 +382,125 @@ async function getSystemMetrics() {
 }
 
 /**
+ * LIFECYCLE HOOKS
+ * These hooks manage the Myria node lifecycle
+ */
+
+/**
+ * Start Hook - Start Myria node
+ * Called when the service needs to start
+ */
+const start = async (context) => {
+  try {
+    const apiKey = process.env.MYRIA_API_KEY;
+    if (!apiKey) {
+      throw new Error('MYRIA_API_KEY not found in environment');
+    }
+    
+    console.log('🚀 Starting Myria node...');
+    const { stdout } = await execAsync(`myria-node --start ${apiKey}`);
+    
+    return {
+      success: true,
+      message: 'Myria node started successfully',
+      output: stdout,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('❌ Failed to start Myria node:', error);
+    return {
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    };
+  }
+};
+
+/**
+ * Stop Hook - Stop Myria node
+ * Called when the service needs to stop
+ */
+const stop = async (context) => {
+  try {
+    const apiKey = process.env.MYRIA_API_KEY;
+    if (!apiKey) {
+      throw new Error('MYRIA_API_KEY not found in environment');
+    }
+    
+    console.log('🛑 Stopping Myria node...');
+    const { stdout } = await execAsync(`myria-node --stop ${apiKey}`);
+    
+    return {
+      success: true,
+      message: 'Myria node stopped successfully',
+      output: stdout,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('❌ Failed to stop Myria node:', error);
+    return {
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    };
+  }
+};
+
+/**
+ * Install Secrets Hook - Secret management
+ * Called to install and manage secrets (API keys)
+ */
+const installSecrets = async (context) => {
+  try {
+    const secrets = context.secrets || {};
+    const installedSecrets = {};
+    
+    console.log('🔐 Installing secrets...');
+    
+    // Install Myria API key
+    if (secrets.MYRIA_API_KEY) {
+      process.env.MYRIA_API_KEY = secrets.MYRIA_API_KEY;
+      installedSecrets.MYRIA_API_KEY = 'installed';
+      console.log('✅ MYRIA_API_KEY installed');
+    }
+    
+    // Install Myria network key
+    if (secrets.MYRIA_NETWORK_KEY) {
+      process.env.MYRIA_NETWORK_KEY = secrets.MYRIA_NETWORK_KEY;
+      installedSecrets.MYRIA_NETWORK_KEY = 'installed';
+      console.log('✅ MYRIA_NETWORK_KEY installed');
+    }
+    
+    // Install other Myria secrets
+    if (secrets.MYRIA_WALLET_KEY) {
+      process.env.MYRIA_WALLET_KEY = secrets.MYRIA_WALLET_KEY;
+      installedSecrets.MYRIA_WALLET_KEY = 'installed';
+      console.log('✅ MYRIA_WALLET_KEY installed');
+    }
+    
+    return {
+      success: true,
+      installed: installedSecrets,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('❌ Failed to install secrets:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+/**
  * EXPORT HOOKS
- * Export the hooks needed for Myria node monitoring
+ * Export the hooks needed for Myria node monitoring and management
  */
 module.exports = {
+  // Lifecycle hooks
+  start,
+  stop,
+  
   // Minimal required hooks
   heartbeat,
   status,
@@ -394,5 +509,8 @@ module.exports = {
   ready,
   probe,
   metrics,
-  validate
+  validate,
+  
+  // Secret management
+  installSecrets
 };

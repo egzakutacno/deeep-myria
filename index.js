@@ -109,6 +109,66 @@ app.get('/myria/live', async (req, res) => {
   }
 });
 
+// Myria Node lifecycle endpoints
+app.post('/myria/start', async (req, res) => {
+  try {
+    if (hooks.start) {
+      const startResult = await hooks.start();
+      res.status(startResult.success ? 200 : 500).json(startResult);
+    } else {
+      res.status(501).json({ 
+        success: false, 
+        error: 'Start hook not implemented' 
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+app.post('/myria/stop', async (req, res) => {
+  try {
+    if (hooks.stop) {
+      const stopResult = await hooks.stop();
+      res.status(stopResult.success ? 200 : 500).json(stopResult);
+    } else {
+      res.status(501).json({ 
+        success: false, 
+        error: 'Stop hook not implemented' 
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// Install secrets endpoint
+app.post('/myria/secrets', async (req, res) => {
+  try {
+    if (hooks.installSecrets) {
+      const secrets = req.body.secrets || {};
+      const installResult = await hooks.installSecrets({ secrets });
+      res.status(installResult.success ? 200 : 500).json(installResult);
+    } else {
+      res.status(501).json({ 
+        success: false, 
+        error: 'InstallSecrets hook not implemented' 
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 // Riptide SDK endpoints
 app.get('/health', async (req, res) => {
   try {
@@ -161,7 +221,10 @@ app.get('/', (req, res) => {
       myriaStatus: '/myria/status',
       myriaMetrics: '/myria/metrics',
       myriaReady: '/myria/ready',
-      myriaLive: '/myria/live'
+      myriaLive: '/myria/live',
+      myriaStart: '/myria/start',
+      myriaStop: '/myria/stop',
+      myriaSecrets: '/myria/secrets'
     },
     timestamp: new Date().toISOString()
   });
@@ -187,6 +250,9 @@ async function startServer() {
       console.log(`🔗 Myria Metrics: http://localhost:${PORT}/myria/metrics`);
       console.log(`🔗 Myria Ready: http://localhost:${PORT}/myria/ready`);
       console.log(`🔗 Myria Live: http://localhost:${PORT}/myria/live`);
+      console.log(`🔗 Myria Start: http://localhost:${PORT}/myria/start`);
+      console.log(`🔗 Myria Stop: http://localhost:${PORT}/myria/stop`);
+      console.log(`🔗 Myria Secrets: http://localhost:${PORT}/myria/secrets`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
