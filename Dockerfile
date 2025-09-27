@@ -26,14 +26,15 @@ RUN useradd -m -s /bin/bash myria && \
     usermod -aG sudo myria && \
     echo "myria ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Create startup script that installs Myria after systemd starts
+# Create startup script that installs Myria then starts systemd
 RUN echo '#!/bin/bash\n\
 set -e\n\
 echo "Starting Myria installation..."\n\
-# Install Myria with systemd as PID 1\n\
+# Install Myria (works without systemd as PID 1)\n\
 wget https://downloads-builds.myria.com/node/install.sh -O - | bash\n\
 echo "Myria installation completed"\n\
-# Start systemd\n\
+echo "Starting systemd..."\n\
+# Start systemd as PID 1 (same as original)\n\
 exec /lib/systemd/systemd' > /startup.sh && \
     chmod +x /startup.sh
 
