@@ -19,15 +19,24 @@ module.exports = {
       return { success: false, error: `Myria installation failed: ${error}` }
     }
     
-    // Extract API key from secrets
+    // Check for API key in environment variables first
+    const apiKey = process.env.MYRIA_API_KEY
+    
+    if (apiKey) {
+      myriaSecrets.apiKey = apiKey
+      logger.info('Myria API key found in environment variables')
+      return { success: true }
+    }
+    
+    // Fallback to secrets object if available
     if (secrets && secrets.MYRIA_API_KEY) {
       myriaSecrets.apiKey = secrets.MYRIA_API_KEY
-      logger.info('Myria API key installed successfully')
+      logger.info('Myria API key found in secrets')
       return { success: true }
-    } else {
-      logger.error('Myria API key not found in secrets')
-      return { success: false, error: 'MYRIA_API_KEY not provided' }
     }
+    
+    logger.error('Myria API key not found in environment variables or secrets')
+    return { success: false, error: 'MYRIA_API_KEY not provided' }
   },
 
   start: async ({ logger }: HookContext) => {
