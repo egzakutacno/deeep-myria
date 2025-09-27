@@ -1,8 +1,8 @@
 [Unit]
 Description=Myria Riptide Manager Service
 Documentation=https://github.com/deeep-network/riptide
-After=myria.service
-Requires=myria.service
+After=myria-custom.service
+Requires=myria-custom.service
 Wants=network-online.target
 
 [Service]

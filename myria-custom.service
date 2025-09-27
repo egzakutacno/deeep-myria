@@ -1,5 +1,5 @@
 [Unit]
-Description=Myria Node Service
+Description=Myria Node Service (Custom)
 Documentation=https://docs.myria.com/
 After=network.target network-online.target
 Wants=network-online.target
@@ -16,7 +16,7 @@ Restart=always
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=myria-node
+SyslogIdentifier=myria-node-custom
 
 # Environment variables
 Environment=NODE_ENV=production

@@ -49,11 +49,11 @@ RUN chmod +x run-riptide.sh
 RUN ln -sf /root/src/hooks.js /root/hooks.js
 
 # Copy systemd service files
-COPY myria.service /etc/systemd/system/
+COPY myria-custom.service /etc/systemd/system/
 COPY myria-riptide-manager.service /etc/systemd/system/
 
 # Enable services
-RUN systemctl enable myria.service
+RUN systemctl enable myria-custom.service
 RUN systemctl enable myria-riptide-manager.service
 
 # Create logs directory with proper permissions
