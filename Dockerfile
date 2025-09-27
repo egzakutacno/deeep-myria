@@ -1,5 +1,5 @@
 # Use Ubuntu with systemd as PID 1
-FROM eniocarboni/ubuntu-systemd:latest
+FROM eniocarboni/docker-ubuntu-systemd:latest
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
