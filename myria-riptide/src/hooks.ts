@@ -158,6 +158,59 @@ module.exports = {
         apiKeyInstalled: !!myriaSecrets.apiKey
       }
     }
+  },
+
+  status: async ({ logger }: HookContext) => {
+    logger.debug('Getting service status')
+    
+    try {
+      // Get Myria status
+      const result = await runMyriaCommand('--status', '', logger)
+      
+      if (result.success && result.output) {
+        const isHealthy = parseMyriaStatus(result.output)
+        
+        const statusData = {
+          service: 'myria-riptide',
+          version: '1.0.0',
+          status: isHealthy ? 'running' : 'stopped',
+          healthy: isHealthy,
+          myriaStatus: result.output.trim(),
+          apiKeyInstalled: !!myriaSecrets.apiKey,
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime()
+        }
+        
+        logger.info(`Service status: ${statusData.status}`)
+        return statusData
+      } else {
+        const statusData = {
+          service: 'myria-riptide',
+          version: '1.0.0', 
+          status: 'error',
+          healthy: false,
+          error: result.error || 'Failed to get Myria status',
+          apiKeyInstalled: !!myriaSecrets.apiKey,
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime()
+        }
+        
+        logger.warn(`Status check failed: ${result.error}`)
+        return statusData
+      }
+    } catch (error) {
+      logger.error(`Status check error: ${error}`)
+      return {
+        service: 'myria-riptide',
+        version: '1.0.0',
+        status: 'error',
+        healthy: false,
+        error: error instanceof Error ? error.message : String(error),
+        apiKeyInstalled: !!myriaSecrets.apiKey,
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+      }
+    }
   }
 }
 
