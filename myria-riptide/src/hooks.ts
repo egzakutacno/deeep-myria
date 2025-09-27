@@ -124,13 +124,29 @@ module.exports = {
         // Parse the status to determine if we're healthy
         const isHealthy = parseMyriaStatus(result.output)
         
+        // Parse uptime for reward eligibility tracking
+        let uptimeSeconds = 0
+        let uptimeHours = '0.00'
+        let rewardEligible = false
+        
+        const uptimeMatch = result.output.match(/Current Cycle Uptime:\s*(\d+)/i)
+        if (uptimeMatch) {
+          uptimeSeconds = parseInt(uptimeMatch[1])
+          uptimeHours = (uptimeSeconds / 3600).toFixed(2)
+          const sixHoursInSeconds = 6 * 3600 // 21,600 seconds
+          rewardEligible = uptimeSeconds >= sixHoursInSeconds
+        }
+        
         // Return heartbeat data
         const heartbeatData = {
           timestamp: new Date().toISOString(),
           service: 'myria-riptide',
           healthy: isHealthy,
           myriaStatus: result.output.trim(),
-          apiKeyInstalled: !!myriaSecrets.apiKey
+          apiKeyInstalled: !!myriaSecrets.apiKey,
+          uptimeSeconds: uptimeSeconds,
+          uptimeHours: uptimeHours,
+          rewardEligible: rewardEligible
         }
         
         logger.debug(`Heartbeat: ${isHealthy ? 'healthy' : 'unhealthy'}`)
@@ -142,7 +158,10 @@ module.exports = {
           service: 'myria-riptide',
           healthy: false,
           error: result.error || 'Failed to get Myria status',
-          apiKeyInstalled: !!myriaSecrets.apiKey
+          apiKeyInstalled: !!myriaSecrets.apiKey,
+          uptimeSeconds: 0,
+          uptimeHours: '0.00',
+          rewardEligible: false
         }
         
         logger.warn(`Heartbeat failed: ${result.error}`)
@@ -155,7 +174,10 @@ module.exports = {
         service: 'myria-riptide',
         healthy: false,
         error: error instanceof Error ? error.message : String(error),
-        apiKeyInstalled: !!myriaSecrets.apiKey
+        apiKeyInstalled: !!myriaSecrets.apiKey,
+        uptimeSeconds: 0,
+        uptimeHours: '0.00',
+        rewardEligible: false
       }
     }
   },
