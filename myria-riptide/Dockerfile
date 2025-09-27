@@ -49,8 +49,26 @@ COPY --from=builder /app/node_modules /riptide/node_modules
 COPY --from=builder /app/package.json /riptide/package.json
 COPY riptide.config.json /riptide/riptide.config.json
 
+# Create systemd service for Riptide
+RUN echo '[Unit]\n\
+Description=Riptide Myria Service\n\
+After=multi-user.target\n\
+\n\
+[Service]\n\
+Type=simple\n\
+ExecStart=/usr/local/bin/riptide start --config /riptide/riptide.config.json --hooks /riptide/dist/hooks.js\n\
+Restart=always\n\
+RestartSec=5\n\
+WorkingDirectory=/riptide\n\
+Environment=NODE_ENV=production\n\
+\n\
+[Install]\n\
+WantedBy=multi-user.target' > /etc/systemd/system/riptide-myria.service
+
+# Enable the service
+RUN systemctl enable riptide-myria.service
+
 EXPOSE 3000
 WORKDIR /riptide
 ENV NODE_ENV=production
-ENTRYPOINT ["/usr/local/bin/riptide"]
-CMD ["start", "--config", "/riptide/riptide.config.json", "--hooks", "/riptide/dist/hooks.js"]
+CMD ["/lib/systemd/systemd"]
