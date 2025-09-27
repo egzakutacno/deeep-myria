@@ -34,11 +34,14 @@ RUN apt-get update && apt-get install -y \
     bash \
     procps \
     ca-certificates \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Myria is already installed from the base image
+# Install Myria node (same approach as your working omnia setup)
+RUN wget https://downloads-builds.myria.com/node/install.sh -O - | bash
+
 # Verify Myria installation
 RUN which myria-node && myria-node --version
 
