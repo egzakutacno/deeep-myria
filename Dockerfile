@@ -59,8 +59,6 @@ RUN systemctl enable myria-riptide-manager.service
 # Create logs directory with proper permissions
 RUN mkdir -p /var/log/myria && chown root:root /var/log/myria
 
-# Expose ports (adjust as needed for Myria and Riptide)
-EXPOSE 3000 8080
 
 # Set systemd as entrypoint
 ENTRYPOINT ["/lib/systemd/systemd"]
