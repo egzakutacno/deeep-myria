@@ -63,4 +63,4 @@ RUN mkdir -p /var/log/myria && chown root:root /var/log/myria
 EXPOSE 3000 8080
 
 # Set systemd as entrypoint
-CMD ["/lib/systemd/systemd"]
+ENTRYPOINT ["/lib/systemd/systemd"]
