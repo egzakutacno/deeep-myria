@@ -21,19 +21,24 @@ RUN sed -i 's/^\($ModLoad imklog\)/#\1/' /etc/rsyslog.conf
 RUN rm -f /lib/systemd/system/systemd*udev* \
   && rm -f /lib/systemd/system/getty.target
 
-# Install Myria node
-RUN wget https://downloads-builds.myria.com/node/install.sh -O - | bash
-
 # Create a non-root user for Myria (optional, for security)
 RUN useradd -m -s /bin/bash myria && \
     usermod -aG sudo myria && \
     echo "myria ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Set up Myria service to start automatically
-RUN systemctl enable myria || true
+# Create startup script that installs Myria after systemd starts
+RUN echo '#!/bin/bash\n\
+set -e\n\
+echo "Starting Myria installation..."\n\
+# Install Myria with systemd as PID 1\n\
+wget https://downloads-builds.myria.com/node/install.sh -O - | bash\n\
+echo "Myria installation completed"\n\
+# Start systemd\n\
+exec /lib/systemd/systemd' > /startup.sh && \
+    chmod +x /startup.sh
 
 # Expose Myria default ports (adjust as needed)
 EXPOSE 8333 8334 8335
 
 VOLUME ["/sys/fs/cgroup", "/tmp", "/run"]
-CMD ["/lib/systemd/systemd"]
+CMD ["/startup.sh"]

@@ -6,9 +6,11 @@ This Docker container provides Ubuntu 22.04 with systemd support and pre-install
 
 - Ubuntu 22.04 base image
 - Systemd support for service management
-- Pre-installed Myria node software
+- Automatic Myria installation on first startup
 - Optimized for container deployment
 - Non-root user support for enhanced security
+
+**Note**: Myria is installed automatically when the container starts with systemd as PID 1, as required by the Myria installation script.
 
 ## Building the Container
 
@@ -22,7 +24,13 @@ docker build -t deep-myria .
 
 ## Running the Container
 
-### Basic Usage
+### Basic Usage (Original Pattern)
+
+```bash
+docker run --detach --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro deep-myria
+```
+
+### Enhanced Usage (With Myria Ports)
 
 ```bash
 docker run -d \
@@ -59,11 +67,17 @@ docker run -d \
 
 ## Managing Myria Services
 
+**Important**: Myria will be automatically installed on the first container startup. This may take a few minutes.
+
 Once the container is running, you can manage Myria services:
 
 ```bash
 # Enter the container
 docker exec -it myria-node bash
+
+# Check if Myria was installed
+which myria
+myria --version
 
 # Check Myria status
 systemctl status myria
