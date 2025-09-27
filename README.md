@@ -4,13 +4,13 @@ This Docker container provides Ubuntu 22.04 with systemd support and pre-install
 
 ## Features
 
-- Ubuntu 22.04 base image
-- Systemd support for service management
-- Automatic Myria installation on first startup
+- Ubuntu 20.04 base image with systemd support
+- Pre-installed Myria node software
 - Optimized for container deployment
-- Non-root user support for enhanced security
+- Compatible with Ubuntu 20.04 and 22.04 hosts
+- Based on proven working setup from omnia repository
 
-**Note**: Myria is installed automatically when the container starts with systemd as PID 1, as required by the Myria installation script.
+**Note**: Uses the same approach as the working omnia setup - installs Myria during Docker build using the eniocarboni/docker-ubuntu-systemd:focal base image.
 
 ## Building the Container
 
@@ -41,6 +41,19 @@ docker run -d \
   -p 8334:8334 \
   -p 8335:8335 \
   deep-myria
+```
+
+### Ubuntu 22.04 Host Fix (If Needed)
+
+If you're running on Ubuntu 22.04 host and experiencing issues, use:
+
+```bash
+docker run --privileged --cgroupns=host \
+  --name myria-node \
+  --restart=always \
+  -v /sys/fs/cgroup:/sys/fs/cgroup \
+  -d deep-myria \
+  /lib/systemd/systemd
 ```
 
 ### Advanced Usage with Volume Persistence
