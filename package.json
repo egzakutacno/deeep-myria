@@ -1,43 +1,41 @@
 {
-  "name": "riptide-crypto-node",
+  "name": "myria-riptide-integration",
   "version": "1.0.0",
-  "description": "Riptide SDK integration with crypto node using systemd",
-  "main": "src/index.js",
+  "description": "Myria crypto node integration with NerdNode Riptide SDK",
+  "main": "manager.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "node --watch src/index.js",
-    "test": "jest",
-    "test:integration": "node examples/test-integration.js",
-    "lint": "eslint src/",
-    "build": "echo 'No build step required'",
-    "docker:build": "docker build -t riptide-crypto-node .",
-    "docker:run": "docker run -d --name riptide-crypto-node --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup -p 3000:3000 -p 8080:8080 -p 8545:8545 -p 30303:30303 riptide-crypto-node",
-    "docker:stop": "docker stop riptide-crypto-node",
-    "docker:rm": "docker rm riptide-crypto-node",
-    "docker:logs": "docker logs -f riptide-crypto-node",
-    "docker:exec": "docker exec -it riptide-crypto-node bash"
-  },
-  "dependencies": {
-    "@deeep-network/riptide": "^0.1.0",
-    "winston": "^3.11.0",
-    "commander": "^11.1.0",
-    "chalk": "^5.3.0",
-    "ora": "^7.0.1"
-  },
-  "devDependencies": {
-    "jest": "^29.7.0",
-    "eslint": "^8.57.0"
-  },
-  "engines": {
-    "node": ">=22.0.0"
+    "start": "node manager.js",
+    "dev": "NODE_ENV=development node manager.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint .",
+    "logs": "./run-riptide.sh logs"
   },
   "keywords": [
+    "myria",
     "riptide",
-    "crypto",
+    "blockchain",
     "node",
-    "systemd",
-    "blockchain"
+    "sdk",
+    "integration"
   ],
-  "author": "Your Name",
-  "license": "MIT"
+  "author": "Myria Team",
+  "license": "MIT",
+  "dependencies": {
+    "@deeep-network/riptide": "^1.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/myria/myria-riptide-integration.git"
+  },
+  "bugs": {
+    "url": "https://github.com/myria/myria-riptide-integration/issues"
+  },
+  "homepage": "https://github.com/myria/myria-riptide-integration#readme"
 }

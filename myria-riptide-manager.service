@@ -1,0 +1,47 @@
+[Unit]
+Description=Myria Riptide Manager Service
+Documentation=https://github.com/deeep-network/riptide
+After=myria.service
+Requires=myria.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/root
+ExecStart=/root/run-riptide.sh start
+ExecStop=/root/run-riptide.sh stop
+ExecReload=/root/run-riptide.sh restart
+Restart=always
+RestartSec=15
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=myria-riptide-manager
+
+# Environment variables
+Environment=NODE_ENV=production
+Environment=NODE_OPTIONS=--max-old-space-size=4096
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/myria /root
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=32768
+
+# Health check
+ExecStartPost=/bin/sleep 10
+ExecStartPost=/bin/bash -c 'if ! /root/run-riptide.sh status > /dev/null 2>&1; then exit 1; fi'
+
+# Graceful shutdown
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target

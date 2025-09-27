@@ -1,225 +1,244 @@
-# Riptide Crypto Node Manager
+# Myria Riptide Integration
 
-A Docker container that integrates the @deeep-network/riptide SDK with a crypto node using systemd as PID 1. This setup ensures proper service management and interactive automation for crypto node operations.
+A complete integration of the Myria crypto node with the NerdNode Riptide SDK, running in a Docker container with systemd as PID 1.
+
+## Overview
+
+This project provides a containerized solution that:
+- Runs Myria node as a systemd service
+- Integrates with Riptide SDK for blockchain monitoring
+- Uses systemd for service orchestration and management
+- Provides comprehensive logging and monitoring capabilities
 
 ## Architecture
 
-- **Base Image**: `eniocarboni/docker-ubuntu-systemd:jammy` (Ubuntu 22.04 LTS with systemd)
-- **PID 1**: systemd (not Riptide)
-- **Service Management**: systemctl commands only
-- **Interactive Automation**: Node.js child_process.spawn with state machine
-- **Crypto Node**: Myria node software
-
-## Features
-
-- ✅ systemd as PID 1 for proper service management
-- ✅ Riptide SDK integration with crypto node
-- ✅ Interactive setup automation
-- ✅ Multi-line output parsing (base64, hex keys)
-- ✅ Service health monitoring
-- ✅ Comprehensive logging
-- ✅ CLI interface for management
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Docker Container                         │
+│  ┌─────────────────┐    ┌─────────────────────────────────┐ │
+│  │   systemd (PID1)│    │        Application Layer        │ │
+│  │                 │    │                                 │ │
+│  │  ┌─────────────┐│    │  ┌─────────────┐ ┌─────────────┐│ │
+│  │  │myria.service││    │  │manager.js   │ │hooks.js     ││ │
+│  │  └─────────────┘│    │  └─────────────┘ └─────────────┘│ │
+│  │                 │    │                                 │ │
+│  │  ┌─────────────┐│    │  ┌─────────────┐ ┌─────────────┐│ │
+│  │  │riptide-     ││    │  │run-riptide  │ │riptide      ││ │
+│  │  │manager      ││    │  │.sh          │ │.config.json ││ │
+│  │  │.service     ││    │  └─────────────┘ └─────────────┘│ │
+│  │  └─────────────┘│    │                                 │ │
+│  └─────────────────┘    └─────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ## Quick Start
 
-### 1. Build the Docker Image
+### Build the Docker Image
 
 ```bash
-docker build -t riptide-crypto-node .
+docker build -t myria-riptide .
 ```
 
-### 2. Run the Container
+### Run the Container
 
 ```bash
-docker run -d \
-  --name riptide-crypto-node \
-  --privileged \
-  --cgroupns=host \
-  -v /sys/fs/cgroup:/sys/fs/cgroup \
-  -p 3000:3000 \
-  -p 8080:8080 \
-  -p 8545:8545 \
-  -p 30303:30303 \
-  riptide-crypto-node
+docker run --privileged --cgroupns=host \
+  --name myria-riptide \
+  --restart=always \
+  -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+  -d myria-riptide \
+  /lib/systemd/systemd
 ```
 
-### 3. Enable Interactive Setup (Optional)
+### Check Service Status
 
 ```bash
-docker run -d \
-  --name riptide-crypto-node \
-  --privileged \
-  --cgroupns=host \
-  -v /sys/fs/cgroup:/sys/fs/cgroup \
-  -e INTERACTIVE_SETUP=true \
-  -p 3000:3000 \
-  -p 8080:8080 \
-  -p 8545:8545 \
-  -p 30303:30303 \
-  riptide-crypto-node
+# Check Myria node status
+docker exec myria-riptide systemctl status myria.service
+
+# Check Riptide manager status
+docker exec myria-riptide systemctl status myria-riptide-manager.service
+
+# View logs
+docker exec myria-riptide ./run-riptide.sh logs
 ```
-
-## Docker Compose
-
-Use the provided `docker-compose.yml` for easier deployment:
-
-```bash
-docker-compose up -d
-```
-
-## Usage
-
-### CLI Commands
-
-Access the container and use the CLI:
-
-```bash
-# Enter the container
-docker exec -it riptide-crypto-node bash
-
-# Check crypto node status
-node /app/src/index.js status
-
-# Get crypto node logs
-node /app/src/index.js logs -n 50
-
-# Restart crypto node
-node /app/src/index.js restart
-
-# Start Riptide manager
-node /app/src/index.js start
-```
-
-### Service Management
-
-```bash
-# Check Riptide service status
-systemctl status riptide.service
-
-# Check Myria node service status
-systemctl status myria-node.service
-
-# View Riptide logs
-journalctl -u riptide.service -f
-
-# View Myria node logs
-journalctl -u myria-node.service -f
-```
-
-## Configuration
-
-### Environment Variables
-
-- `NODE_ENV`: Node.js environment (default: production)
-- `RIPTIDE_SERVICE_NAME`: Riptide service name (default: riptide)
-- `CRYPTO_NODE_SERVICE`: Crypto node service name (default: myria-node)
-- `INTERACTIVE_SETUP`: Enable interactive setup (default: false)
-
-### Ports
-
-- `3000`: Riptide API port
-- `8080`: Riptide WebSocket port
-- `8545`: Myria node RPC port
-- `30303`: Myria node P2P port
 
 ## File Structure
 
 ```
-/app/
-├── src/
-│   └── index.js              # Main Riptide application
-├── scripts/
-│   ├── setup-crypto-node.sh  # Interactive setup script
-│   └── start-riptide.sh      # Startup script
-├── riptide.service           # Riptide systemd service
-├── package.json              # Node.js dependencies
-└── Dockerfile                # Docker configuration
+.
+├── Dockerfile                          # Container definition
+├── package.json                        # Node.js dependencies
+├── riptide.config.json                 # Riptide SDK configuration
+├── manager.js                          # Main Riptide manager
+├── run-riptide.sh                      # Service wrapper script
+├── myria.service                       # Myria node systemd service
+├── myria-riptide-manager.service       # Riptide manager systemd service
+└── src/
+    └── hooks.js                        # Riptide event hooks
 ```
 
-## Riptide Hooks
+## Configuration
 
-The application provides the following Riptide hooks:
+### Riptide Configuration
 
-- `startCryptoNode`: Start the crypto node
-- `stopCryptoNode`: Stop the crypto node
-- `restartCryptoNode`: Restart the crypto node
-- `checkCryptoNodeStatus`: Get crypto node status
-- `getCryptoNodeLogs`: Get crypto node logs
+Edit `riptide.config.json` to customize:
+- Network settings (RPC URL, chain ID, etc.)
+- Monitoring intervals and health checks
+- Logging levels and output destinations
+- Event filters and handlers
+- API settings and security
 
-## Interactive Setup
+### Hooks Customization
 
-When `INTERACTIVE_SETUP=true`, the container will:
+Modify `src/hooks.js` to implement your specific logic:
+- `onStartup()` - Called when Riptide starts
+- `onShutdown()` - Called when Riptide stops
+- `onNewBlock()` - Called when new blocks are detected
+- `onNewTransaction()` - Called when new transactions are detected
+- `onError()` - Called when errors occur
+- `onHealthCheck()` - Called for health status checks
 
-1. Install Myria node software
-2. Create systemd service for Myria node
-3. Prompt for configuration (node name, network, ports)
-4. Extract and display keys from setup output
-5. Start the crypto node service
+## Service Management
+
+### Using systemctl (inside container)
+
+```bash
+# Start services
+docker exec myria-riptide systemctl start myria.service
+docker exec myria-riptide systemctl start myria-riptide-manager.service
+
+# Stop services
+docker exec myria-riptide systemctl stop myria-riptide-manager.service
+docker exec myria-riptide systemctl stop myria.service
+
+# Restart services
+docker exec myria-riptide systemctl restart myria.service
+docker exec myria-riptide systemctl restart myria-riptide-manager.service
+
+# Check status
+docker exec myria-riptide systemctl status myria.service
+docker exec myria-riptide systemctl status myria-riptide-manager.service
+```
+
+### Using the Wrapper Script
+
+```bash
+# Start Riptide manager
+docker exec myria-riptide ./run-riptide.sh start
+
+# Stop Riptide manager
+docker exec myria-riptide ./run-riptide.sh stop
+
+# Restart Riptide manager
+docker exec myria-riptide ./run-riptide.sh restart
+
+# Check status
+docker exec myria-riptide ./run-riptide.sh status
+
+# View logs
+docker exec myria-riptide ./run-riptide.sh logs 100
+```
 
 ## Logging
 
-Logs are available in multiple locations:
+Logs are stored in `/var/log/myria/`:
+- `riptide.log` - Main Riptide SDK logs
+- `manager.log` - Manager application logs
+- `blocks.log` - Block event logs
+- `transactions.log` - Transaction event logs
+- `errors.log` - Error logs
 
-- Riptide logs: `/var/log/riptide/riptide.log`
-- Setup logs: `/var/log/riptide/setup.log`
-- Startup logs: `/var/log/riptide/startup.log`
-- Systemd logs: `journalctl -u riptide.service`
-- Myria node logs: `journalctl -u myria-node.service`
+## Monitoring
+
+### Health Checks
+
+The system includes built-in health checks:
+- Myria node connectivity
+- Riptide SDK status
+- Service dependencies
+- Resource usage
+
+### Metrics
+
+If enabled in configuration, metrics are available at:
+- `http://localhost:9090/metrics` - Prometheus format
 
 ## Troubleshooting
 
-### Container won't start
+### Common Issues
 
-1. Ensure you're using the correct run command with `--privileged` and `--cgroupns=host`
-2. Check systemd logs: `docker logs riptide-crypto-node`
-3. Verify the base image: `eniocarboni/docker-ubuntu-systemd:jammy`
+1. **Services not starting**
+   ```bash
+   # Check service logs
+   docker exec myria-riptide journalctl -u myria.service -f
+   docker exec myria-riptide journalctl -u myria-riptide-manager.service -f
+   ```
 
-### Crypto node not starting
+2. **Permission issues**
+   ```bash
+   # Ensure proper permissions
+   docker exec myria-riptide chmod +x /root/run-riptide.sh
+   docker exec myria-riptide chown -R root:root /var/log/myria
+   ```
 
-1. Check Myria node service: `systemctl status myria-node.service`
-2. View Myria node logs: `journalctl -u myria-node.service -f`
-3. Verify Myria node installation: `which myria-node`
+3. **Network connectivity**
+   ```bash
+   # Test network connectivity
+   docker exec myria-riptide curl -f http://localhost:8545
+   ```
 
-### Riptide not responding
+### Debug Mode
 
-1. Check Riptide service: `systemctl status riptide.service`
-2. View Riptide logs: `journalctl -u riptide.service -f`
-3. Check application logs: `tail -f /var/log/riptide/riptide.log`
+Enable debug logging by modifying `riptide.config.json`:
+```json
+{
+  "logging": {
+    "level": "debug"
+  },
+  "development": {
+    "enabled": true,
+    "debug": true
+  }
+}
+```
 
 ## Development
 
 ### Local Development
 
-```bash
-# Install dependencies
-npm install
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Modify configuration and hooks as needed
+4. Test locally: `npm start`
 
-# Run in development mode
-npm run dev
+### Building and Testing
+
+```bash
+# Build the image
+docker build -t myria-riptide .
 
 # Run tests
-npm test
+docker run --rm myria-riptide npm test
 
-# Lint code
-npm run lint
-```
-
-### Building
-
-```bash
-# Build Docker image
-docker build -t riptide-crypto-node .
-
-# Build with specific tag
-docker build -t riptide-crypto-node:latest .
+# Run with debug
+docker run --rm -it myria-riptide npm run dev
 ```
 
 ## Security Considerations
 
-- The container runs with `--privileged` for systemd functionality
-- Services run as root for systemd compatibility
-- Consider security implications for production deployments
-- Review and customize the systemd service configurations
+- The container runs with `--privileged` flag for systemd functionality
+- Services run as root user (required for systemd)
+- Network ports are exposed (3000, 8080, 9090)
+- Consider implementing authentication for production use
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
 ## License
 
@@ -228,27 +247,6 @@ MIT License - see LICENSE file for details.
 ## Support
 
 For issues and questions:
-
-1. Check the troubleshooting section
-2. Review the logs
-3. Open an issue on the repository
-4. Contact the development team
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## Changelog
-
-### v1.0.0
-- Initial release
-- Riptide SDK integration
-- systemd as PID 1
-- Interactive setup automation
-- Myria node support
-- Comprehensive logging
-- CLI interface
+- GitHub Issues: https://github.com/myria/myria-riptide-integration/issues
+- Documentation: https://docs.myria.com/
+- Riptide SDK: https://github.com/deeep-network/riptide
