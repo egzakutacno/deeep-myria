@@ -40,25 +40,24 @@ RUN npm install @deeep-network/riptide
 COPY src/hooks.js ./src/
 COPY manager.js ./
 COPY run-riptide.sh ./
+COPY start-services.sh ./
 COPY riptide.config.json ./
 
 # Make scripts executable
-RUN chmod +x run-riptide.sh
+RUN chmod +x run-riptide.sh start-services.sh
 
 # Create symlink for hooks.js
 RUN ln -sf /root/src/hooks.js /root/hooks.js
 
 # Copy systemd service files
-COPY myria-custom.service /etc/systemd/system/
 COPY myria-riptide-manager.service /etc/systemd/system/
 
 # Enable services
-RUN systemctl enable myria-custom.service
 RUN systemctl enable myria-riptide-manager.service
 
 # Create logs directory with proper permissions
 RUN mkdir -p /var/log/myria && chown root:root /var/log/myria
 
 
-# Set systemd as entrypoint
-ENTRYPOINT ["/lib/systemd/systemd"]
+# Set startup script as entrypoint
+ENTRYPOINT ["/root/start-services.sh"]
