@@ -79,5 +79,8 @@ RUN mkdir -p /var/log/myria && \
 # Expose ports (adjust as needed for Myria)
 EXPOSE 8080 9090
 
+# Set volume for cgroup
+VOLUME [ "/sys/fs/cgroup" ]
+
 # Set the default command
 CMD ["/lib/systemd/systemd"]
