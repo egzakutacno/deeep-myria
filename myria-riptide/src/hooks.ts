@@ -123,11 +123,19 @@ async function runMyriaCommand(command: string, apiKey: string, logger: any): Pr
 
     let output = ''
     let errorOutput = ''
+    let apiKeySent = false
 
     myriaProcess.stdout.on('data', (data) => {
       const chunk = data.toString()
       output += chunk
       logger.debug(`Myria stdout: ${chunk}`)
+      
+      // Check if we see the API key prompt and haven't sent it yet
+      if (chunk.includes('Enter the node API Key:') && !apiKeySent) {
+        logger.debug('Sending API key to Myria...')
+        myriaProcess.stdin.write(apiKey + '\n')
+        apiKeySent = true
+      }
     })
 
     myriaProcess.stderr.on('data', (data) => {
@@ -136,8 +144,14 @@ async function runMyriaCommand(command: string, apiKey: string, logger: any): Pr
       logger.debug(`Myria stderr: ${chunk}`)
     })
 
-    // Handle API key prompt
-    myriaProcess.stdin.write(apiKey + '\n')
+    // Fallback: send API key after a delay if prompt wasn't detected
+    setTimeout(() => {
+      if (!apiKeySent) {
+        logger.debug('Sending API key (fallback timeout)...')
+        myriaProcess.stdin.write(apiKey + '\n')
+        apiKeySent = true
+      }
+    }, 2000)
 
     myriaProcess.on('close', (code) => {
       if (code === 0) {
