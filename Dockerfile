@@ -1,0 +1,39 @@
+FROM ubuntu:22.04
+LABEL maintainer="Enio Carboni"
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Install: dependencies, clean: apt cache, remove dir: cache, man, doc, change mod time of cache dir.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       software-properties-common \
+       rsyslog systemd systemd-cron sudo \
+       wget curl ca-certificates \
+    && apt-get clean \
+    && rm -Rf /usr/share/doc && rm -Rf /usr/share/man \
+    && rm -rf /var/lib/apt/lists/* \
+    && touch -d "2 hours ago" /var/lib/apt/lists
+
+# Configure rsyslog
+RUN sed -i 's/^\($ModLoad imklog\)/#\1/' /etc/rsyslog.conf
+
+# Remove unnecessary systemd services for container environment
+RUN rm -f /lib/systemd/system/systemd*udev* \
+  && rm -f /lib/systemd/system/getty.target
+
+# Install Myria node
+RUN wget https://downloads-builds.myria.com/node/install.sh -O - | bash
+
+# Create a non-root user for Myria (optional, for security)
+RUN useradd -m -s /bin/bash myria && \
+    usermod -aG sudo myria && \
+    echo "myria ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Set up Myria service to start automatically
+RUN systemctl enable myria || true
+
+# Expose Myria default ports (adjust as needed)
+EXPOSE 8333 8334 8335
+
+VOLUME ["/sys/fs/cgroup", "/tmp", "/run"]
+CMD ["/lib/systemd/systemd"]
