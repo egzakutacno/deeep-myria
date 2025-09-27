@@ -72,8 +72,10 @@ module.exports = {
       const result = await runMyriaCommand('--status', '', logger)
       
       if (result.success && result.output) {
+        logger.info(`Raw Myria status output: "${result.output}"`)
         // Parse the status output to determine health
         const isHealthy = parseMyriaStatus(result.output)
+        logger.info(`Parsed health result: ${isHealthy}`)
         logger.debug(`Myria health check: ${isHealthy ? 'healthy' : 'unhealthy'}`)
         return isHealthy
       } else {
