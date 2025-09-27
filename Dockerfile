@@ -26,20 +26,24 @@ RUN useradd -m -s /bin/bash myria && \
     usermod -aG sudo myria && \
     echo "myria ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Create startup script that installs Myria then starts systemd
-RUN echo '#!/bin/bash\n\
-set -e\n\
-echo "Starting Myria installation..."\n\
-# Install Myria (works without systemd as PID 1)\n\
-wget https://downloads-builds.myria.com/node/install.sh -O - | bash\n\
-echo "Myria installation completed"\n\
-echo "Starting systemd..."\n\
-# Start systemd as PID 1 (same as original)\n\
-exec /lib/systemd/systemd' > /startup.sh && \
-    chmod +x /startup.sh
+# Create systemd service that installs Myria on first boot
+RUN echo '[Unit]\n\
+Description=Install Myria on first boot\n\
+After=multi-user.target\n\
+\n\
+[Service]\n\
+Type=oneshot\n\
+ExecStart=/bin/bash -c "if [ ! -f /usr/local/bin/myria-node ]; then echo \"Installing Myria...\"; wget https://downloads-builds.myria.com/node/install.sh -O - | bash; echo \"Myria installation completed\"; fi"\n\
+RemainAfterExit=yes\n\
+\n\
+[Install]\n\
+WantedBy=multi-user.target' > /etc/systemd/system/myria-installer.service
+
+# Enable the installer service
+RUN systemctl enable myria-installer.service || true
 
 # Expose Myria default ports (adjust as needed)
 EXPOSE 8333 8334 8335
 
 VOLUME ["/sys/fs/cgroup", "/tmp", "/run"]
-CMD ["/startup.sh"]
+CMD ["/lib/systemd/systemd"]
