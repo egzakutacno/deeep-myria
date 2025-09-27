@@ -28,9 +28,8 @@ RUN apt-get update && apt-get install -y curl
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 RUN apt-get install -y nodejs
 
-# Install Myria node (EXACT same as your working omnia setup)
+# Install system dependencies (Myria will be installed at runtime)
 RUN apt-get update && apt-get install -y wget curl
-RUN wget https://downloads-builds.myria.com/node/install.sh -O - | bash
 
 WORKDIR /app
 

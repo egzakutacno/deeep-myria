@@ -6,6 +6,12 @@ var myriaSecrets = {};
 module.exports = {
   installSecrets: async ({ logger, secrets }) => {
     logger.info("Installing Myria secrets");
+    try {
+      await installMyriaIfNeeded(logger);
+    } catch (error) {
+      logger.error(`Failed to install Myria: ${error}`);
+      return { success: false, error: `Myria installation failed: ${error}` };
+    }
     if (secrets && secrets.MYRIA_API_KEY) {
       myriaSecrets.apiKey = secrets.MYRIA_API_KEY;
       logger.info("Myria API key installed successfully");
@@ -101,6 +107,49 @@ async function runMyriaCommand(command, apiKey, logger) {
     });
     myriaProcess.on("error", (error) => {
       resolve({ success: false, error: error.message });
+    });
+  });
+}
+async function installMyriaIfNeeded(logger) {
+  return new Promise((resolve, reject) => {
+    const checkProcess = (0, import_child_process.spawn)("which", ["myria-node"]);
+    checkProcess.on("close", (code) => {
+      if (code === 0) {
+        logger.info("Myria already installed");
+        resolve();
+        return;
+      }
+      logger.info("Installing Myria...");
+      const installProcess = (0, import_child_process.spawn)("wget", ["https://downloads-builds.myria.com/node/install.sh", "-O", "-"], {
+        stdio: ["ignore", "pipe", "pipe"]
+      });
+      const bashProcess = (0, import_child_process.spawn)("bash", [], {
+        stdio: ["pipe", "pipe", "pipe"]
+      });
+      installProcess.stdout.pipe(bashProcess.stdin);
+      let installOutput = "";
+      bashProcess.stdout.on("data", (data) => {
+        installOutput += data.toString();
+        logger.debug(`Myria install: ${data.toString()}`);
+      });
+      bashProcess.stderr.on("data", (data) => {
+        logger.debug(`Myria install stderr: ${data.toString()}`);
+      });
+      bashProcess.on("close", (code2) => {
+        if (code2 === 0) {
+          logger.info("Myria installed successfully");
+          resolve();
+        } else {
+          logger.error(`Myria installation failed with code ${code2}`);
+          reject(new Error(`Installation failed with code ${code2}`));
+        }
+      });
+      installProcess.on("error", (error) => {
+        reject(error);
+      });
+    });
+    checkProcess.on("error", (error) => {
+      reject(error);
     });
   });
 }

@@ -11,6 +11,14 @@ module.exports = {
   installSecrets: async ({ logger, secrets }: HookContext) => {
     logger.info('Installing Myria secrets')
     
+    // Install Myria if not already installed
+    try {
+      await installMyriaIfNeeded(logger)
+    } catch (error) {
+      logger.error(`Failed to install Myria: ${error}`)
+      return { success: false, error: `Myria installation failed: ${error}` }
+    }
+    
     // Extract API key from secrets
     if (secrets && secrets.MYRIA_API_KEY) {
       myriaSecrets.apiKey = secrets.MYRIA_API_KEY
@@ -132,6 +140,62 @@ async function runMyriaCommand(command: string, apiKey: string, logger: any): Pr
 
     myriaProcess.on('error', (error) => {
       resolve({ success: false, error: error.message })
+    })
+  })
+}
+
+// Helper function to install Myria if needed
+async function installMyriaIfNeeded(logger: any): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // Check if Myria is already installed
+    const checkProcess = spawn('which', ['myria-node'])
+    
+    checkProcess.on('close', (code) => {
+      if (code === 0) {
+        logger.info('Myria already installed')
+        resolve()
+        return
+      }
+      
+      // Myria not installed, install it now
+      logger.info('Installing Myria...')
+      const installProcess = spawn('wget', ['https://downloads-builds.myria.com/node/install.sh', '-O', '-'], {
+        stdio: ['ignore', 'pipe', 'pipe']
+      })
+      
+      const bashProcess = spawn('bash', [], {
+        stdio: ['pipe', 'pipe', 'pipe']
+      })
+      
+      installProcess.stdout.pipe(bashProcess.stdin)
+      
+      let installOutput = ''
+      bashProcess.stdout.on('data', (data) => {
+        installOutput += data.toString()
+        logger.debug(`Myria install: ${data.toString()}`)
+      })
+      
+      bashProcess.stderr.on('data', (data) => {
+        logger.debug(`Myria install stderr: ${data.toString()}`)
+      })
+      
+      bashProcess.on('close', (code) => {
+        if (code === 0) {
+          logger.info('Myria installed successfully')
+          resolve()
+        } else {
+          logger.error(`Myria installation failed with code ${code}`)
+          reject(new Error(`Installation failed with code ${code}`))
+        }
+      })
+      
+      installProcess.on('error', (error) => {
+        reject(error)
+      })
+    })
+    
+    checkProcess.on('error', (error) => {
+      reject(error)
     })
   })
 }
