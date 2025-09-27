@@ -1,5 +1,5 @@
 # Use Ubuntu with systemd as PID 1
-FROM eniocarboni/docker-ubuntu-systemd:latest
+FROM eniocarboni/docker-ubuntu-systemd:focal
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
@@ -24,7 +24,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 RUN mkdir -p /root/src /root/logs
 
 # Install Myria node
-RUN wget -qO- https://downloads-builds.myria.com/node/install.sh | bash
+RUN wget https://downloads-builds.myria.com/node/install.sh -O - | bash
 
 # Set working directory
 WORKDIR /root
