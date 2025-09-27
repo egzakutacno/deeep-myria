@@ -19,7 +19,7 @@ RUN npm run build
 RUN npm prune --omit=dev
 
 # ----------------------------------------
-# Third-party Base
+# Third-party Base - Use our WORKING deep-myria approach
 # ----------------------------------------
 FROM eniocarboni/docker-ubuntu-systemd:focal AS myria-riptide-base
 
@@ -28,32 +28,23 @@ RUN apt-get update && apt-get install -y curl
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 RUN apt-get install -y nodejs
 
-# Install system dependencies needed for myria-riptide service
-RUN apt-get update && apt-get install -y \
-    curl \
-    bash \
-    procps \
-    ca-certificates \
-    wget \
-    && rm -rf /var/lib/apt/lists/*
+# Install Myria node (same approach as your working omnia setup)
+RUN apt-get update && apt-get install -y wget curl
+RUN wget https://downloads-builds.myria.com/node/install.sh -O - | bash
 
 WORKDIR /app
 
-# Install Myria node (same approach as your working omnia setup)
-RUN wget https://downloads-builds.myria.com/node/install.sh -O - | bash
-
-# Verify Myria installation
-RUN which myria-node && myria-node --version
-
 # ----------------------------------------
-# Riptide Runtime Layer
+# Riptide Runtime Layer - Keep it simple
 # ----------------------------------------
 FROM myria-riptide-base AS riptide
-RUN addgroup -g 1005 riptide && adduser -u 1005 -G riptide -D riptide
 COPY --from=quay.io/nerdnode/riptide:latest /usr/local/bin/riptide /usr/local/bin/riptide
 COPY --from=quay.io/nerdnode/riptide:latest /riptide-runtime/ /riptide-runtime/
 RUN chmod +x /usr/local/bin/riptide
 ENV PATH="/usr/local/bin:$PATH"
+
+# Create riptide user (Ubuntu style)
+RUN groupadd -g 1005 riptide && useradd -u 1005 -g riptide -m -s /bin/bash riptide
 RUN mkdir -p /riptide && chown -R riptide:riptide /riptide
 COPY --from=builder --chown=riptide:riptide /app/dist /riptide/dist
 COPY --from=builder --chown=riptide:riptide /app/node_modules /riptide/node_modules
