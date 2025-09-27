@@ -1,121 +1,133 @@
-# Deep Myria Docker Container
+# Myria Riptide Integration
 
-This Docker container provides Ubuntu 22.04 with systemd support and pre-installed Myria node software.
+A production-ready Docker container that integrates Myria node software with the Riptide SDK for container orchestration and lifecycle management.
+
+## Overview
+
+This project provides a complete implementation of Myria node management using the `@deeep-network/riptide` SDK, designed for integration with NerdNode's container orchestration platform (Hashicorp Nomad).
 
 ## Features
 
-- Ubuntu 20.04 base image with systemd support
-- Pre-installed Myria node software
-- Optimized for container deployment
-- Compatible with Ubuntu 20.04 and 22.04 hosts
-- Based on proven working setup from omnia repository
+- **Complete Riptide SDK Integration** - All required lifecycle hooks implemented
+- **Myria Node Management** - Automatic installation and lifecycle control
+- **Reward Tracking** - Built-in monitoring for daily reward eligibility (6-hour minimum)
+- **Production Ready** - systemd-based container with proper service management
+- **Orchestrator Compatible** - HTTP API endpoints for monitoring and control
 
-**Note**: Uses the same approach as the working omnia setup - installs Myria during Docker build using the eniocarboni/docker-ubuntu-systemd:focal base image.
+## Architecture
 
-## Building the Container
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Orchestrator  │◄──►│  Riptide Service │◄──►│  Myria Node     │
+│   (Nomad)       │    │  (Port 3000)     │    │  (systemd)      │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+```
 
-To build the container on your VPS:
+## Implemented Hooks
+
+| Hook | Purpose | Status |
+|------|---------|--------|
+| `installSecrets` | Receives API key from orchestrator | ✅ Ready |
+| `start` | Starts Myria node with API key | ✅ Working |
+| `health` | Checks Myria node health status | ✅ Working |
+| `stop` | Stops Myria node with API key | ✅ Working |
+| `heartbeat` | Provides monitoring data + reward tracking | ✅ Working |
+| `status` | Returns comprehensive service status | ✅ Working |
+
+## Quick Start
+
+### Build the Container
 
 ```bash
 git clone https://github.com/egzakutacno/deeep-myria.git
 cd deeep-myria
-docker build -t deep-myria .
+docker build -t reef-myria-riptide -f myria-riptide/Dockerfile myria-riptide/
 ```
 
-## Running the Container
-
-### Basic Usage (Original Pattern)
-
-```bash
-docker run --detach --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro deep-myria
-```
-
-### Enhanced Usage (With Myria Ports)
-
-```bash
-docker run -d \
-  --name myria-node \
-  --privileged \
-  -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
-  -p 8333:8333 \
-  -p 8334:8334 \
-  -p 8335:8335 \
-  deep-myria
-```
-
-### Ubuntu 22.04 Host Fix (If Needed)
-
-If you're running on Ubuntu 22.04 host and experiencing issues, use:
+### Run the Container
 
 ```bash
 docker run --privileged --cgroupns=host \
-  --name myria-node \
-  --restart=always \
+  --name myria-riptide \
   -v /sys/fs/cgroup:/sys/fs/cgroup \
-  -d deep-myria \
-  /lib/systemd/systemd
+  -e MYRIA_API_KEY="your-api-key-here" \
+  -d reef-myria-riptide
 ```
 
-### Advanced Usage with Volume Persistence
+## API Endpoints
+
+The Riptide service exposes the following HTTP endpoints:
+
+- `GET /health` - Service health check
+- `GET /status` - Detailed service status
+- `POST /api/secrets` - Secret injection (orchestrator integration)
+
+## Heartbeat Data
+
+The heartbeat hook provides comprehensive monitoring data:
+
+```json
+{
+  "timestamp": "2025-09-27T10:30:00.000Z",
+  "service": "myria-riptide",
+  "healthy": true,
+  "myriaStatus": "Current Cycle Status: running",
+  "apiKeyInstalled": true,
+  "uptimeSeconds": 34323,
+  "uptimeHours": "9.54",
+  "rewardEligible": true
+}
+```
+
+## Reward Tracking
+
+The service automatically tracks Myria node uptime and determines daily reward eligibility:
+
+- **Minimum Requirement**: 6 hours (21,600 seconds) per day
+- **Real-time Monitoring**: Heartbeat data includes current uptime and eligibility status
+- **Orchestrator Integration**: Perfect for monitoring multiple nodes across infrastructure
+
+## Integration with NerdNode
+
+This implementation is designed for integration with NerdNode's orchestrator platform. Key integration points:
+
+1. **Secret Management**: Orchestrator sends API keys via HTTP API or environment variables
+2. **Health Monitoring**: Continuous heartbeat data for orchestrator monitoring
+3. **Lifecycle Management**: Complete start/stop/health control via Riptide hooks
+4. **Reward Tracking**: Built-in monitoring for reward eligibility compliance
+
+## Development
+
+### Project Structure
+
+```
+myria-riptide/
+├── src/
+│   └── hooks.ts          # Riptide lifecycle hooks implementation
+├── Dockerfile            # Container definition
+├── package.json          # Node.js dependencies
+├── riptide.config.json   # Riptide service configuration
+└── README.md             # Detailed documentation
+```
+
+### Building
 
 ```bash
-docker run -d \
-  --name myria-node \
-  --privileged \
-  --restart unless-stopped \
-  -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
-  -v myria-data:/home/myria/.myria \
-  -p 8333:8333 \
-  -p 8334:8334 \
-  -p 8335:8335 \
-  deep-myria
+cd myria-riptide
+npm install
+npm run build
 ```
 
-## Important Notes
+## Requirements
 
-- The container requires `--privileged` flag to run systemd
-- Mount `/sys/fs/cgroup` as read-only for proper systemd functionality
-- Consider using volume mounts for data persistence
-- Default ports: 8333, 8334, 8335 (adjust as needed)
+- Docker with systemd support
+- `--privileged` flag for systemd functionality
+- cgroup namespace access (`--cgroupns=host` for Ubuntu 22.04 hosts)
 
-## Managing Myria Services
+## License
 
-**Important**: Myria will be automatically installed on the first container startup. This may take a few minutes.
+This project is part of the NerdNode ecosystem integration.
 
-Once the container is running, you can manage Myria services:
+## Support
 
-```bash
-# Enter the container
-docker exec -it myria-node bash
-
-# Check if Myria was installed
-which myria
-myria --version
-
-# Check Myria status
-systemctl status myria
-
-# Start Myria service
-systemctl start myria
-
-# Stop Myria service
-systemctl stop myria
-
-# Restart Myria service
-systemctl restart myria
-```
-
-## Security Considerations
-
-- The container creates a `myria` user for running services
-- Consider running with `--user myria` for additional security
-- Regularly update the base image and Myria software
-
-## Troubleshooting
-
-If you encounter issues:
-
-1. Check container logs: `docker logs myria-node`
-2. Verify systemd is running: `docker exec myria-node systemctl status`
-3. Check Myria service status: `docker exec myria-node systemctl status myria`
-4. Ensure proper volume mounts and port mappings
+For integration questions or issues, contact the NerdNode development team.
