@@ -111,6 +111,53 @@ module.exports = {
       logger.error(`Error stopping Myria: ${error}`)
       return { success: false, error: error instanceof Error ? error.message : String(error) }
     }
+  },
+
+  heartbeat: async ({ logger }: HookContext) => {
+    logger.debug('Heartbeat check')
+    
+    try {
+      // Get Myria status for heartbeat
+      const result = await runMyriaCommand('--status', '', logger)
+      
+      if (result.success && result.output) {
+        // Parse the status to determine if we're healthy
+        const isHealthy = parseMyriaStatus(result.output)
+        
+        // Return heartbeat data
+        const heartbeatData = {
+          timestamp: new Date().toISOString(),
+          service: 'myria-riptide',
+          healthy: isHealthy,
+          myriaStatus: result.output.trim(),
+          apiKeyInstalled: !!myriaSecrets.apiKey
+        }
+        
+        logger.debug(`Heartbeat: ${isHealthy ? 'healthy' : 'unhealthy'}`)
+        return heartbeatData
+      } else {
+        // If we can't get status, return unhealthy heartbeat
+        const heartbeatData = {
+          timestamp: new Date().toISOString(),
+          service: 'myria-riptide',
+          healthy: false,
+          error: result.error || 'Failed to get Myria status',
+          apiKeyInstalled: !!myriaSecrets.apiKey
+        }
+        
+        logger.warn(`Heartbeat failed: ${result.error}`)
+        return heartbeatData
+      }
+    } catch (error) {
+      logger.error(`Heartbeat error: ${error}`)
+      return {
+        timestamp: new Date().toISOString(),
+        service: 'myria-riptide',
+        healthy: false,
+        error: error instanceof Error ? error.message : String(error),
+        apiKeyInstalled: !!myriaSecrets.apiKey
+      }
+    }
   }
 }
 
