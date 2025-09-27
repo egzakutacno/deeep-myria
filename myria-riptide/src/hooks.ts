@@ -157,7 +157,9 @@ async function runMyriaCommand(command: string, apiKey: string, logger: any): Pr
       if (code === 0) {
         resolve({ success: true, output })
       } else {
-        resolve({ success: false, error: errorOutput || `Process exited with code ${code}` })
+        // Include both stdout and stderr in error for debugging
+        const fullOutput = `STDOUT: ${output}\nSTDERR: ${errorOutput}`
+        resolve({ success: false, error: fullOutput || `Process exited with code ${code}` })
       }
     })
 
