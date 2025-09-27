@@ -1,6 +1,6 @@
 [Unit]
-Description=Myria Node Service
-Documentation=https://github.com/myria/myria
+Description=Myria Node with Riptide SDK
+Documentation=https://www.npmjs.com/package/@deeep-network/riptide
 After=network.target
 Wants=network.target
 
@@ -9,13 +9,13 @@ Type=simple
 User=myria
 Group=myria
 WorkingDirectory=/opt/myria
-ExecStart=/opt/myria/bin/myria
+ExecStart=/usr/bin/node index.js
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=always
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=myria
+SyslogIdentifier=myria-riptide
 
 # Environment variables
 Environment=NODE_ENV=production

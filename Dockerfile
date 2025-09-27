@@ -7,23 +7,15 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV container=docker
 
-# Install systemd and other essential packages
+# Install systemd and Node.js for Riptide SDK
 RUN apt-get update && apt-get install -y \
     systemd \
     systemd-sysv \
     curl \
-    wget \
-    gnupg \
-    lsb-release \
     ca-certificates \
-    software-properties-common \
-    apt-transport-https \
-    git \
-    build-essential \
-    python3 \
-    python3-pip \
-    nodejs \
-    npm \
+    gnupg \
+    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -45,14 +37,32 @@ RUN useradd -m -s /bin/bash myria && \
 RUN mkdir -p /opt/myria && \
     chown myria:myria /opt/myria
 
-# Install Myria dependencies and software
-# Note: This is a placeholder - you'll need to add the actual Myria installation commands
-# based on the specific requirements of the Myria software you're installing
+# Install Riptide SDK and Myria dependencies
+RUN npm install -g @deeep-network/riptide
+
+# Create package.json for Myria application
+RUN echo '{ \
+  "name": "myria-riptide", \
+  "version": "1.0.0", \
+  "description": "Myria node with Riptide SDK", \
+  "main": "index.js", \
+  "dependencies": { \
+    "@deeep-network/riptide": "latest" \
+  }, \
+  "scripts": { \
+    "start": "node index.js" \
+  } \
+}' > /opt/myria/package.json && \
+    chown myria:myria /opt/myria/package.json
 
 # Copy any local installation scripts
 COPY scripts/ /opt/myria/scripts/
 RUN chmod +x /opt/myria/scripts/*.sh && \
     chown -R myria:myria /opt/myria
+
+# Create the main Myria application
+COPY scripts/create-myria-app.js /opt/myria/index.js
+RUN chown myria:myria /opt/myria/index.js
 
 # Create systemd service files for Myria
 COPY systemd/ /etc/systemd/system/
