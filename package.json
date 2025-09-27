@@ -21,7 +21,7 @@
   "author": "Myria Team",
   "license": "MIT",
   "dependencies": {
-    "@deeep-network/riptide": "^1.0.0"
+    "@deeep-network/riptide": "^0.2.11"
   },
   "devDependencies": {
     "eslint": "^8.0.0"

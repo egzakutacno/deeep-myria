@@ -15,8 +15,8 @@ RUN apt-get update && apt-get install -y \
     systemd-sysv \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js (LTS version)
-RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
+# Install Node.js 22+ (required by Riptide SDK)
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs
 
 # Create application directories
