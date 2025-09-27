@@ -4,6 +4,7 @@ FROM eniocarboni/docker-ubuntu-systemd:latest
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NODE_ENV=production
+ENV container=docker
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -62,4 +63,4 @@ RUN mkdir -p /var/log/myria && chown root:root /var/log/myria
 EXPOSE 3000 8080
 
 # Set systemd as entrypoint
-ENTRYPOINT ["/lib/systemd/systemd"]
+CMD ["/lib/systemd/systemd"]
