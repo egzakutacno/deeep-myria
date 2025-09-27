@@ -1,0 +1,10 @@
+{
+  "service": {
+    "name": "myria-riptide",
+    "version": "1.0.0",
+    "description": "myria-riptide service"
+  },
+  "logging": {
+    "level": "info"
+  }
+}
