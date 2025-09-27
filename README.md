@@ -1,252 +1,188 @@
-# Myria Riptide Integration
+# Myria Docker Container with systemd
 
-A complete integration of the Myria crypto node with the NerdNode Riptide SDK, running in a Docker container with systemd as PID 1.
+This repository contains a Docker container setup for running Myria software with systemd support, based on the [docker-ubuntu-systemd](https://github.com/eniocarboni/docker-ubuntu-systemd) pattern.
 
-## Overview
+## Features
 
-This project provides a containerized solution that:
-- Runs Myria node as a systemd service
-- Integrates with Riptide SDK for blockchain monitoring
-- Uses systemd for service orchestration and management
-- Provides comprehensive logging and monitoring capabilities
+- Ubuntu 22.04 LTS base image
+- systemd support for running services
+- Pre-configured Myria node setup
+- Docker Compose support for easy deployment
+- Health checks and monitoring
+- Proper security configurations
 
-## Architecture
+## Prerequisites
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Docker Container                         │
-│  ┌─────────────────┐    ┌─────────────────────────────────┐ │
-│  │   systemd (PID1)│    │        Application Layer        │ │
-│  │                 │    │                                 │ │
-│  │  ┌─────────────┐│    │  ┌─────────────┐ ┌─────────────┐│ │
-│  │  │myria.service││    │  │manager.js   │ │hooks.js     ││ │
-│  │  └─────────────┘│    │  └─────────────┘ └─────────────┘│ │
-│  │                 │    │                                 │ │
-│  │  ┌─────────────┐│    │  ┌─────────────┐ ┌─────────────┐│ │
-│  │  │riptide-     ││    │  │run-riptide  │ │riptide      ││ │
-│  │  │manager      ││    │  │.sh          │ │.config.json ││ │
-│  │  │.service     ││    │  └─────────────┘ └─────────────┘│ │
-│  │  └─────────────┘│    │                                 │ │
-│  └─────────────────┘    └─────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-```
+- Docker
+- Docker Compose
+- Git
 
 ## Quick Start
 
-### Build the Docker Image
+### 1. Clone the Repository
 
 ```bash
-docker build -t myria-riptide .
+git clone https://github.com/egzakutacno/deeep-myria.git
+cd deeep-myria
 ```
 
-### Run the Container
+### 2. Build the Container
 
 ```bash
-docker run --privileged --cgroupns=host \
-  --name myria-riptide \
-  --restart=always \
-  -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
-  -d myria-riptide \
-  /lib/systemd/systemd
+chmod +x build.sh
+./build.sh
 ```
 
-### Check Service Status
+### 3. Deploy with Docker Compose
 
 ```bash
-# Check Myria node status
-docker exec myria-riptide systemctl status myria.service
+chmod +x deploy.sh
+./deploy.sh
+```
 
-# Check Riptide manager status
-docker exec myria-riptide systemctl status myria-riptide-manager.service
+## Manual Deployment
+
+### Using Docker Compose (Recommended)
+
+```bash
+# Build and start the container
+docker-compose up -d --build
 
 # View logs
-docker exec myria-riptide ./run-riptide.sh logs
+docker-compose logs -f myria
+
+# Stop the container
+docker-compose down
 ```
 
-## File Structure
+### Using Docker directly
 
-```
-.
-├── Dockerfile                          # Container definition
-├── package.json                        # Node.js dependencies
-├── riptide.config.json                 # Riptide SDK configuration
-├── manager.js                          # Main Riptide manager
-├── run-riptide.sh                      # Service wrapper script
-├── myria.service                       # Myria node systemd service
-├── myria-riptide-manager.service       # Riptide manager systemd service
-└── src/
-    └── hooks.js                        # Riptide event hooks
+```bash
+# Build the image
+docker build -t myria-systemd:latest .
+
+# Run the container
+docker run --privileged -d \
+  --name myria-container \
+  -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+  -p 8080:8080 \
+  -p 9090:9090 \
+  myria-systemd:latest
 ```
 
 ## Configuration
 
-### Riptide Configuration
+### Environment Variables
 
-Edit `riptide.config.json` to customize:
-- Network settings (RPC URL, chain ID, etc.)
-- Monitoring intervals and health checks
-- Logging levels and output destinations
-- Event filters and handlers
-- API settings and security
+- `NODE_ENV`: Set to `production` for production deployment
+- `MYRIA_DATA_DIR`: Path to Myria data directory (default: `/var/lib/myria`)
+- `MYRIA_LOG_DIR`: Path to Myria log directory (default: `/var/log/myria`)
 
-### Hooks Customization
+### Ports
 
-Modify `src/hooks.js` to implement your specific logic:
-- `onStartup()` - Called when Riptide starts
-- `onShutdown()` - Called when Riptide stops
-- `onNewBlock()` - Called when new blocks are detected
-- `onNewTransaction()` - Called when new transactions are detected
-- `onError()` - Called when errors occur
-- `onHealthCheck()` - Called for health status checks
+- `8080`: Myria network port
+- `9090`: Myria API port
 
-## Service Management
+### Volumes
 
-### Using systemctl (inside container)
+- `/var/lib/myria`: Myria data directory
+- `/var/log/myria`: Myria log directory
+- `/opt/myria/config`: Configuration files (optional)
+
+## Myria Service Management
+
+The container runs systemd, so you can manage the Myria service using systemctl:
 
 ```bash
-# Start services
-docker exec myria-riptide systemctl start myria.service
-docker exec myria-riptide systemctl start myria-riptide-manager.service
+# Access the container
+docker exec -it myria-container bash
 
-# Stop services
-docker exec myria-riptide systemctl stop myria-riptide-manager.service
-docker exec myria-riptide systemctl stop myria.service
+# Check service status
+systemctl status myria.service
 
-# Restart services
-docker exec myria-riptide systemctl restart myria.service
-docker exec myria-riptide systemctl restart myria-riptide-manager.service
+# View service logs
+journalctl -u myria.service -f
 
-# Check status
-docker exec myria-riptide systemctl status myria.service
-docker exec myria-riptide systemctl status myria-riptide-manager.service
+# Restart service
+systemctl restart myria.service
 ```
 
-### Using the Wrapper Script
+## Customization
 
-```bash
-# Start Riptide manager
-docker exec myria-riptide ./run-riptide.sh start
+### Installing Custom Myria Software
 
-# Stop Riptide manager
-docker exec myria-riptide ./run-riptide.sh stop
+To install a specific version of Myria software, edit the `scripts/install-myria.sh` file and replace the placeholder installation commands with the actual installation steps for your Myria software.
 
-# Restart Riptide manager
-docker exec myria-riptide ./run-riptide.sh restart
+### Configuration Files
 
-# Check status
-docker exec myria-riptide ./run-riptide.sh status
+Configuration files can be placed in the `config/` directory and will be mounted into the container at `/opt/myria/config`.
 
-# View logs
-docker exec myria-riptide ./run-riptide.sh logs 100
-```
+### systemd Service
 
-## Logging
-
-Logs are stored in `/var/log/myria/`:
-- `riptide.log` - Main Riptide SDK logs
-- `manager.log` - Manager application logs
-- `blocks.log` - Block event logs
-- `transactions.log` - Transaction event logs
-- `errors.log` - Error logs
-
-## Monitoring
-
-### Health Checks
-
-The system includes built-in health checks:
-- Myria node connectivity
-- Riptide SDK status
-- Service dependencies
-- Resource usage
-
-### Metrics
-
-If enabled in configuration, metrics are available at:
-- `http://localhost:9090/metrics` - Prometheus format
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Services not starting**
-   ```bash
-   # Check service logs
-   docker exec myria-riptide journalctl -u myria.service -f
-   docker exec myria-riptide journalctl -u myria-riptide-manager.service -f
-   ```
-
-2. **Permission issues**
-   ```bash
-   # Ensure proper permissions
-   docker exec myria-riptide chmod +x /root/run-riptide.sh
-   docker exec myria-riptide chown -R root:root /var/log/myria
-   ```
-
-3. **Network connectivity**
-   ```bash
-   # Test network connectivity
-   docker exec myria-riptide curl -f http://localhost:8545
-   ```
-
-### Debug Mode
-
-Enable debug logging by modifying `riptide.config.json`:
-```json
-{
-  "logging": {
-    "level": "debug"
-  },
-  "development": {
-    "enabled": true,
-    "debug": true
-  }
-}
-```
-
-## Development
-
-### Local Development
-
-1. Clone the repository
-2. Install dependencies: `npm install`
-3. Modify configuration and hooks as needed
-4. Test locally: `npm start`
-
-### Building and Testing
-
-```bash
-# Build the image
-docker build -t myria-riptide .
-
-# Run tests
-docker run --rm myria-riptide npm test
-
-# Run with debug
-docker run --rm -it myria-riptide npm run dev
-```
+The systemd service file is located at `systemd/myria.service`. You can modify this file to customize the service behavior.
 
 ## Security Considerations
 
-- The container runs with `--privileged` flag for systemd functionality
-- Services run as root user (required for systemd)
-- Network ports are exposed (3000, 8080, 9090)
-- Consider implementing authentication for production use
+- The container runs with `--privileged` flag to support systemd
+- Proper user isolation is implemented with the `myria` user
+- Security settings are configured in the systemd service file
+- Sensitive directories are protected with appropriate permissions
+
+## Troubleshooting
+
+### Container Won't Start
+
+1. Check Docker logs: `docker-compose logs myria`
+2. Verify systemd is running: `docker exec myria-container systemctl status`
+3. Check service status: `docker exec myria-container systemctl status myria.service`
+
+### Service Issues
+
+1. View service logs: `journalctl -u myria.service -f`
+2. Check configuration: `cat /var/lib/myria/config/node.conf`
+3. Verify permissions: `ls -la /var/lib/myria/`
+
+### Network Issues
+
+1. Verify ports are accessible: `netstat -tlnp | grep :8080`
+2. Check firewall settings on the host
+3. Verify container networking: `docker network ls`
+
+## Development
+
+### Building for Different Architectures
+
+```bash
+# Build for ARM64
+docker buildx build --platform linux/arm64 -t myria-systemd:arm64 .
+
+# Build for AMD64
+docker buildx build --platform linux/amd64 -t myria-systemd:amd64 .
+```
+
+### Pushing to Registry
+
+```bash
+# Tag for GitHub Container Registry
+docker tag myria-systemd:latest ghcr.io/egzakutacno/deeep-myria:latest
+
+# Push to registry
+docker push ghcr.io/egzakutacno/deeep-myria:latest
+```
 
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Test thoroughly
+4. Test the changes
 5. Submit a pull request
 
 ## License
 
-MIT License - see LICENSE file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Support
+## Acknowledgments
 
-For issues and questions:
-- GitHub Issues: https://github.com/myria/myria-riptide-integration/issues
-- Documentation: https://docs.myria.com/
-- Riptide SDK: https://github.com/deeep-network/riptide
+- Based on [docker-ubuntu-systemd](https://github.com/eniocarboni/docker-ubuntu-systemd) by eniocarboni
+- Inspired by the need for systemd support in Docker containers

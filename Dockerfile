@@ -1,63 +1,73 @@
-# Use Ubuntu with systemd as PID 1
-FROM eniocarboni/docker-ubuntu-systemd:focal
+# Dockerfile for Myria with systemd support
+# Based on docker-ubuntu-systemd pattern
+
+FROM ubuntu:22.04
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
-ENV NODE_ENV=production
 ENV container=docker
 
-# Install system dependencies
+# Install systemd and other essential packages
 RUN apt-get update && apt-get install -y \
+    systemd \
+    systemd-sysv \
     curl \
     wget \
     gnupg \
+    lsb-release \
     ca-certificates \
-    systemd \
-    systemd-sysv \
-    && rm -rf /var/lib/apt/lists/*
+    software-properties-common \
+    apt-transport-https \
+    git \
+    build-essential \
+    python3 \
+    python3-pip \
+    nodejs \
+    npm \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Install Node.js 22+ (required by Riptide SDK)
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y nodejs
+# Remove unnecessary systemd targets and services
+RUN (cd /lib/systemd/system/sysinit.target.wants/; for i in *; do [ $i == systemd-tmpfiles-setup.service ] || rm -f $i; done); \
+    rm -f /lib/systemd/system/multi-user.target.wants/*; \
+    rm -f /etc/systemd/system/*.wants/*; \
+    rm -f /lib/systemd/system/local-fs.target.wants/*; \
+    rm -f /lib/systemd/system/sockets.target.wants/*udev*; \
+    rm -f /lib/systemd/system/sockets.target.wants/*initctl*; \
+    rm -f /lib/systemd/system/basic.target.wants/*; \
+    rm -f /lib/systemd/system/anaconda.target.wants/*
 
-# Create application directories
-RUN mkdir -p /root/src /root/logs
+# Create myria user
+RUN useradd -m -s /bin/bash myria && \
+    usermod -aG sudo myria
 
-# Install Myria node
-RUN wget https://downloads-builds.myria.com/node/install.sh -O - | bash
+# Create myria application directory
+RUN mkdir -p /opt/myria && \
+    chown myria:myria /opt/myria
 
-# Set working directory
-WORKDIR /root
+# Install Myria dependencies and software
+# Note: This is a placeholder - you'll need to add the actual Myria installation commands
+# based on the specific requirements of the Myria software you're installing
 
-# Copy package files first for better Docker layer caching
-COPY package.json ./
-COPY package-lock.json* ./
+# Copy any local installation scripts
+COPY scripts/ /opt/myria/scripts/
+RUN chmod +x /opt/myria/scripts/*.sh && \
+    chown -R myria:myria /opt/myria
 
-# Install Riptide SDK and dependencies
-RUN npm install @deeep-network/riptide
+# Create systemd service files for Myria
+COPY systemd/ /etc/systemd/system/
+RUN systemctl enable myria.service
 
-# Copy application files
-COPY src/hooks.js ./src/
-COPY manager.js ./
-COPY run-riptide.sh ./
-COPY start-services.sh ./
-COPY riptide.config.json ./
+# Create myria data directory
+RUN mkdir -p /var/lib/myria && \
+    chown myria:myria /var/lib/myria
 
-# Make scripts executable
-RUN chmod +x run-riptide.sh start-services.sh
+# Create myria log directory
+RUN mkdir -p /var/log/myria && \
+    chown myria:myria /var/log/myria
 
-# Create symlink for hooks.js
-RUN ln -sf /root/src/hooks.js /root/hooks.js
+# Expose ports (adjust as needed for Myria)
+EXPOSE 8080 9090
 
-# Copy systemd service files
-COPY myria-riptide-manager.service /etc/systemd/system/
-
-# Enable services
-RUN systemctl enable myria-riptide-manager.service
-
-# Create logs directory with proper permissions
-RUN mkdir -p /var/log/myria && chown root:root /var/log/myria
-
-
-# Set startup script as entrypoint
-ENTRYPOINT ["/root/start-services.sh"]
+# Set the default command
+CMD ["/lib/systemd/systemd"]

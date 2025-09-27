@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  myria:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: myria-container
+    privileged: true
+    volumes:
+      # Mount cgroup for systemd
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      # Mount myria data directory
+      - myria_data:/var/lib/myria
+      # Mount myria logs directory
+      - myria_logs:/var/log/myria
+      # Mount config directory (optional)
+      - ./config:/opt/myria/config:ro
+    ports:
+      - "8080:8080"  # Myria network port
+      - "9090:9090"  # Myria API port
+    environment:
+      - NODE_ENV=production
+      - MYRIA_DATA_DIR=/var/lib/myria
+      - MYRIA_LOG_DIR=/var/log/myria
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "systemctl", "is-active", "myria.service"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  myria_data:
+    driver: local
+  myria_logs:
+    driver: local
+
+networks:
+  default:
+    name: myria-network

@@ -1,0 +1,33 @@
+[Unit]
+Description=Myria Node Service
+Documentation=https://github.com/myria/myria
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=myria
+Group=myria
+WorkingDirectory=/opt/myria
+ExecStart=/opt/myria/bin/myria
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=myria
+
+# Environment variables
+Environment=NODE_ENV=production
+Environment=MYRIA_DATA_DIR=/var/lib/myria
+Environment=MYRIA_LOG_DIR=/var/log/myria
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/myria /var/log/myria /opt/myria
+
+[Install]
+WantedBy=multi-user.target
