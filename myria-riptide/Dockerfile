@@ -19,7 +19,7 @@ RUN npm run build
 RUN npm prune --omit=dev
 
 # ----------------------------------------
-# Third-party Base - Use our WORKING deep-myria approach
+# Third-party Base - Use EXACT working omnia approach
 # ----------------------------------------
 FROM eniocarboni/docker-ubuntu-systemd:focal AS myria-riptide-base
 
@@ -28,7 +28,7 @@ RUN apt-get update && apt-get install -y curl
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 RUN apt-get install -y nodejs
 
-# Install Myria node (same approach as your working omnia setup)
+# Install Myria node (EXACT same as your working omnia setup)
 RUN apt-get update && apt-get install -y wget curl
 RUN wget https://downloads-builds.myria.com/node/install.sh -O - | bash
 
